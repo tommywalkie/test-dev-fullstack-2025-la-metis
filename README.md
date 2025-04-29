@@ -57,6 +57,11 @@ npm run dev
 
 ## Tests
 
+> [!NOTE]  
+> Lacking experience with Hono myself and how to integrate it well with **both** TypeORM (with decorators) and Vitest, most of the e2e setup was done with the help of AI.
+
+This will run both unit and e2e tests using Vitest and Supertest. A dev server (with values from `.env.test`) will be spawned to run the tests against.
+
 ```bash
 npm test
 ```
