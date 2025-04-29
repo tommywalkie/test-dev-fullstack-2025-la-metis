@@ -12,13 +12,41 @@ Le sujet original est disponible dans le fichier [`SUBJECT.md`](SUBJECT.md).
 ├── SUBJECT.md                        # Sujet original du test
 ├── .github                           # GitHub actions
 └── src                               # Code source
-    └── index.ts                      # Point d'entrée
+    ├── index.ts                      # Point d'entrée
+    ├── data-source.ts                # Source de données (TypeORM)
+    └── <module>                      # Module de fonctionnalité
+        ├── <module>.route.ts         # Routes (endpoints documentés)
+        ├── <module>.entity.ts        # Entité (TypeORM, peut être utilisé comme repository)
+        ├── <module>.controller.ts    # Contrôleur (gestion des routes)
+        ├── <module>.validator.ts     # Validateur (équivalents aux DTOs)
+        └── <module>.service.ts       # Service (logique métier)
 ```
 
 ## Installation
 
 ```bash
 npm install
+```
+
+## Migrations
+
+Pour le test technique, j'ai ajouté TypeORM pour gérer la base de données SQLite et un système de migrations.
+
+Avant de lancer le projet, il faut initialiser la base de données.
+
+```bash
+npm run migration:run
+```
+
+### Commandes
+
+Note: On fera usage de `ts-node` pour que TypeORM puisse gérer les fichiers TypeScript.
+
+```bash
+npm run migration:show                            # Affiche les migrations
+npm run migration:generate src/migrations/<name>  # Génère une migration
+npm run migration:run                             # Exécute les migrations
+npm run migration:revert                          # Annule la dernière migration
 ```
 
 ## Usage
