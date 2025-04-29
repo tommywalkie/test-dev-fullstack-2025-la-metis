@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from "typeorm";
+import { ProjectUser } from "../project/project-user.entity";
 
 export enum UserRole {
   ADMIN = "admin",
@@ -32,4 +34,8 @@ export class User {
 
   @UpdateDateColumn({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   updatedAt: Date;
+
+  // Relation avec les projets auxquels l'utilisateur a accès
+  @OneToMany(() => ProjectUser, (projectUser) => projectUser.user)
+  projectUsers: ProjectUser[];
 }

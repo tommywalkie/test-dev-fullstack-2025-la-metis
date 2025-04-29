@@ -3,8 +3,10 @@ import { z } from "@hono/zod-openapi";
 export const projectSchema = z.object({
   id: z.number(),
   name: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  createdById: z.number().nullable(),
+  userIds: z.array(z.number()).optional(),
   analyses: z
     .array(
       z.object({
@@ -19,9 +21,13 @@ export const projectSchema = z.object({
 });
 
 export const createProjectSchema = z.object({
-  name: z.string(),
+  name: z.string().min(1, "Le nom du projet est requis"),
+  userIds: z.array(z.number()).optional(),
 });
 
-export const updateProjectSchema = createProjectSchema.partial();
+export const updateProjectSchema = z.object({
+  name: z.string().min(1, "Le nom du projet est requis").optional(),
+  userIds: z.array(z.number()).optional(),
+});
 
 export type ProjectSchema = z.infer<typeof projectSchema>;

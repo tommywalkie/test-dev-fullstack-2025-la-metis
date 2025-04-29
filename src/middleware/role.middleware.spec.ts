@@ -19,6 +19,7 @@ describe("Role Middleware", () => {
       role: UserRole.ADMIN,
       createdAt: new Date(),
       updatedAt: new Date(),
+      projectUsers: [],
     };
 
     // Create a mock context
