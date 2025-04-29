@@ -8,6 +8,7 @@ const execAsync = promisify(exec);
 
 let server: ChildProcess | null = null;
 let serverStarted = false;
+const isCI = process.env.CI === "true";
 
 // Helper to wait for a specific time
 export const wait = (ms: number) =>
@@ -68,7 +69,7 @@ const killProcessOnPort = async (port: number): Promise<boolean> => {
 // Helper to wait for the server to be ready
 export const waitForServer = async (
   port: number,
-  maxRetries = 3,
+  maxRetries = isCI ? 10 : 3, // More retries in CI environment
   retryInterval = 500
 ): Promise<boolean> => {
   let retries = 0;
@@ -83,7 +84,7 @@ export const waitForServer = async (
       }
     } catch (error) {
       // Server not ready yet
-      if (retries % 5 === 0) {
+      if (retries % 2 === 0) {
         console.log(
           `Waiting for server on port ${port}... (${retries}/${maxRetries} retries)`
         );
@@ -109,33 +110,32 @@ const setupShutdownHandlers = () => {
   // Ensure graceful shutdown on process exit
   process.on("exit", () => {
     if (server) {
-      stopServer();
+      try {
+        if (process.platform === "win32") {
+          spawn("taskkill", ["/pid", server.pid!.toString(), "/f", "/t"]);
+        } else {
+          server.kill("SIGKILL");
+        }
+      } catch (error) {
+        // Ignore errors during exit
+      }
     }
   });
 
   // Handle Ctrl+C and other termination signals
   process.on("SIGINT", () => {
     console.log("Received SIGINT. Graceful shutdown...");
-    if (server) {
-      stopServer();
-    }
-    process.exit(0);
+    stopServer().then(() => process.exit(0));
   });
 
   process.on("SIGTERM", () => {
     console.log("Received SIGTERM. Graceful shutdown...");
-    if (server) {
-      stopServer();
-    }
-    process.exit(0);
+    stopServer().then(() => process.exit(0));
   });
 
   process.on("uncaughtException", (error) => {
     console.error("Uncaught exception:", error);
-    if (server) {
-      stopServer();
-    }
-    process.exit(1);
+    stopServer().then(() => process.exit(1));
   });
 };
 
@@ -163,6 +163,17 @@ export const startServer = async (): Promise<void> => {
   // Get port from .env.test
   const port = getTestPort();
   console.log(`Using test server port: ${port}`);
+
+  // Check if port is already in use and kill the process
+  try {
+    if (await isPortInUse(port)) {
+      console.log(`Port ${port} is already in use. Attempting to free it...`);
+      await killProcessOnPort(port);
+      await wait(1000); // Wait for the port to be released
+    }
+  } catch (error) {
+    console.error("Error checking port:", error);
+  }
 
   // Reset server state
   serverStarted = false;
@@ -193,9 +204,7 @@ export const startServer = async (): Promise<void> => {
   const serverReady = await waitForServer(port);
 
   if (!serverReady || serverError) {
-    if (server) {
-      stopServer();
-    }
+    await stopServer();
     throw (
       serverError || new Error(`Failed to start test server on port ${port}`)
     );
@@ -271,7 +280,7 @@ const setupServerEventHandlers = (
         )
       );
     }
-    console.log(`Server process successfully exited`);
+    console.log(`Server process exited with code ${code}`);
     server = null;
   });
 };
@@ -279,81 +288,84 @@ const setupServerEventHandlers = (
 export const stopServer = async (): Promise<void> => {
   console.log("Shutting down test server...");
 
-  if (server) {
-    const port = getTestPort();
-    let killed = false;
+  if (!server) {
+    console.log("No server to shut down");
+    return;
+  }
 
-    try {
-      // First try graceful shutdown
-      if (process.platform === "win32") {
-        // Windows requires a different approach to kill the process tree
-        const killProcess = spawn("taskkill", [
-          "/pid",
-          server.pid!.toString(),
-          "/f",
-          "/t",
-        ]);
+  const port = getTestPort();
+  let killed = false;
 
-        // Wait for the kill process to complete
-        await new Promise<void>((resolve) => {
-          killProcess.on("close", () => {
-            killed = true;
-            resolve();
-          });
+  try {
+    // First try graceful shutdown
+    if (process.platform === "win32") {
+      // Windows requires a different approach to kill the process tree
+      const killProcess = spawn("taskkill", [
+        "/pid",
+        server.pid!.toString(),
+        "/f",
+        "/t",
+      ]);
 
-          killProcess.on("error", (error) => {
-            console.error("Error killing server process:", error);
-            resolve();
-          });
-
-          // Timeout for the kill process
-          setTimeout(resolve, 3000);
+      // Wait for the kill process to complete
+      await new Promise<void>((resolve) => {
+        killProcess.on("close", () => {
+          killed = true;
+          resolve();
         });
-      } else {
-        // Unix-like systems
+
+        killProcess.on("error", (error) => {
+          console.error("Error killing server process:", error);
+          resolve();
+        });
+
+        // Timeout for the kill process
+        setTimeout(resolve, 3000);
+      });
+    } else {
+      // Unix-like systems
+      if (server) {
         server.kill("SIGTERM");
 
         // Wait a bit for the process to terminate
         await wait(1000);
 
-        // Check if process is still running
-        if (!server.killed) {
+        // Check if process is still running and server reference exists
+        if (server && !server.killed) {
           server.kill("SIGKILL");
           await wait(1000);
         }
 
         killed = true;
       }
-
-      // Clear any references to the server
-      server = null;
-
-      // Double-check if the port is still in use and force kill if needed
-      await wait(1000); // Wait for OS to release the port
-      const portStillInUse = await isPortInUse(port);
-
-      if (portStillInUse) {
-        console.log(
-          `Port ${port} is still in use after server shutdown. Forcing cleanup...`
-        );
-        await killProcessOnPort(port);
-        await wait(1000); // Wait again after forced kill
-      }
-
-      console.log("Test server has been shut down successfully");
-    } catch (error) {
-      console.error("Error shutting down server:", error);
-    } finally {
-      // Ensure server reference is cleared
-      server = null;
-
-      // Final check and cleanup
-      if (!killed) {
-        console.log("Attempting final cleanup of port...");
-        await killProcessOnPort(getTestPort());
-      }
     }
-  } else {
-    console.log("No server to shut down");
+
+    // Clear any references to the server
+    server = null;
+
+    // Double-check if the port is still in use and force kill if needed
+    await wait(1000); // Wait for OS to release the port
+    const portStillInUse = await isPortInUse(port);
+
+    if (portStillInUse) {
+      console.log(
+        `Port ${port} is still in use after server shutdown. Forcing cleanup...`
+      );
+      await killProcessOnPort(port);
+      await wait(1000); // Wait again after forced kill
+    }
+
+    console.log("Test server has been shut down successfully");
+  } catch (error) {
+    console.error("Error shutting down server:", error);
+  } finally {
+    // Ensure server reference is cleared
+    server = null;
+
+    // Final check and cleanup
+    if (!killed) {
+      console.log("Attempting final cleanup of port...");
+      await killProcessOnPort(getTestPort());
+    }
   }
 };
