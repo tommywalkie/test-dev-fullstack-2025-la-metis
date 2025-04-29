@@ -141,17 +141,7 @@ const setupShutdownHandlers = () => {
 
 // Get port from .env.test file
 const getTestPort = (): number => {
-  const envPath = path.resolve(process.cwd(), ".env.test");
-  if (!fs.existsSync(envPath)) {
-    console.warn(
-      `.env.test file not found at ${envPath}, using default port 3222`
-    );
-    return 3222;
-  }
-
-  const envContent = fs.readFileSync(envPath, "utf8");
-  const portMatch = envContent.match(/PORT=(\d+)/);
-  return portMatch ? parseInt(portMatch[1]) : 3222;
+  return parseInt(process.env.PORT || "3222");
 };
 
 export const startServer = async (): Promise<void> => {

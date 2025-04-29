@@ -3,8 +3,7 @@ import supertest from "supertest";
 import { Project } from "@/project/project.entity";
 import { startServer, stopServer, wait } from "./server";
 
-// Use port 3222 to match your .env.test file
-const API_URL = "http://localhost:3222";
+const API_URL = `http://localhost:${process.env.PORT}`;
 
 // Start the server before all tests
 beforeAll(async () => {
