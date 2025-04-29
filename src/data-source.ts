@@ -13,7 +13,7 @@ export const AppDataSource = new DataSource({
   migrations: [`./src/migrations/*.ts`],
   migrationsRun: !isTestEnvironment, // Don't run migrations in test environment
   synchronize: isTestEnvironment, // Auto-create schema in test environment
-  logging: true,
+  logging: false,
 });
 
 let db: DataSource;

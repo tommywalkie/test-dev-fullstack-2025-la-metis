@@ -1,6 +1,5 @@
 import { Context } from "hono";
 import { ProjectService } from "./project.service";
-import { Project } from "./project.entity";
 
 export class ProjectController {
   private projectService: ProjectService;

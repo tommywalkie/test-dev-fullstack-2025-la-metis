@@ -5,10 +5,24 @@ import {
   createProjectSchema,
   updateProjectSchema,
 } from "./project.validator";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { roleMiddleware } from "@/middleware/role.middleware";
+import { UserRole } from "@/user/user.entity";
 
 const projectController = new ProjectController();
 
 export const projectRoute = new OpenAPIHono();
+
+// Apply authentication and role middleware to all project routes
+// Limitation: Also affects analysis routes
+projectRoute.use("*", authMiddleware());
+projectRoute.use(
+  "*",
+  roleMiddleware({
+    roles: [UserRole.ADMIN, UserRole.MANAGER],
+    exclude: ["GET"],
+  })
+);
 
 // Get all projects
 projectRoute.openapi(
@@ -24,6 +38,9 @@ projectRoute.openapi(
           },
         },
         description: "Projects found",
+      },
+      401: {
+        description: "Unauthorized",
       },
     },
   }),
@@ -49,6 +66,9 @@ projectRoute.openapi(
           },
         },
         description: "Project found",
+      },
+      401: {
+        description: "Unauthorized",
       },
       404: {
         description: "Project not found",
