@@ -2,9 +2,11 @@
 
 Soumission du test pour La Mètis par Tom Bazarnik.
 
+Le sujet original du test technique est disponible dans le fichier [`SUBJECT.md`](SUBJECT.md).
+
 ## Structure
 
-Le sujet original est disponible dans le fichier [`SUBJECT.md`](SUBJECT.md).
+Le projet est structuré de la manière suivante :
 
 ```sh
 .
@@ -26,6 +28,10 @@ Le sujet original est disponible dans le fichier [`SUBJECT.md`](SUBJECT.md).
         └── <module>.service.ts       # Service (logique métier)
 ```
 
+Ne connaissant pas vraiment Hono avant ce test technique, je me suis inspiré de la structure de projet d'un projet NestJS qui est un framework sur lequel j'ai beaucoup travaillé, dans l'idée de découper le code en modules, avec divers fichiers ayant chacun une responsabilité unique.
+
+Il m'est arrivé de jeter un coup d'oeil à une librairie [hono-simple-di](https://github.com/maou-shonen/hono-simple-di) qui aurait potentiellement pu être utile pour simuler l'aspect injection de dépendances de NestJS et me faciliter la tâche pour les tests, mais j'ai préféré ne pas l'utiliser et me fier le plus possible à Hono pour ses capacités.
+
 ## Installation
 
 Tout d'abord, il faut installer les dépendances.
@@ -37,10 +43,10 @@ npm install
 Ensuite, il faut créer un fichier `.env` dans le projet et y renseigner les variables d'environnement en se basant sur le fichier `.env.example`.
 
 ```bash
-HOST=localhost # Par défaut: localhost
-PORT=3000 # Par défaut: 3000
-DATABASE_URL=my-database.sqlite3
-LOG_LEVEL=debug # Par défaut: null. Si "debug" est renseigné, les logs de TypeORM seront affichés
+HOST=localhost               # Par défaut: localhost
+PORT=3000                    # Par défaut: 3000
+DATABASE_URL=db.sqlite3      # Par défaut: db.sqlite3
+LOG_LEVEL=debug              # Optionnel, null par défaut. Si "debug", les logs de TypeORM seront affichés
 ```
 
 ## Migrations
@@ -84,7 +90,7 @@ La documentation des endpoints et schémas se fait via `@hono/zod-openapi` lors 
 ## Tests
 
 > [!IMPORTANT]  
-> Manquant d'expérience avec Hono et comment l'intégrer correctement avec TypeORM (avec des décorateurs) **et** Vitest, la plupart de la configuration e2e a été faite avec l'aide de l'IA et en utilisant Supertest.
+> Manquant d'expérience avec Hono et comment l'intégrer correctement avec TypeORM (avec des décorateurs) **et** Vitest, la plupart de la configuration e2e a été faite avec l'aide de l'IA et en utilisant Supertest. Une éventuelle solution alternative à tester serait d'utiliser [unplugin-swc](https://github.com/vitest-dev/vitest/discussions/3320#discussioncomment-5841661) dans la configuration de Vitest.
 
 Cela va lancer les tests unitaires et e2e en utilisant Vitest et Supertest. Un serveur de développement (avec les valeurs de `.env.test`) sera lancé pour exécuter les tests, il sera fermé automatiquement après la fin des tests.
 
