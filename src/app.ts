@@ -2,6 +2,10 @@ import "reflect-metadata";
 import { swaggerUI } from "@hono/swagger-ui";
 import { initializeDatabase } from "./data-source";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { projectRoute } from "./project/project.route";
+import { analysisRoute } from "./analysis/analysis.route";
+
+console.log("process.env.PORT", process.env.PORT);
 
 initializeDatabase();
 
@@ -11,54 +15,8 @@ app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
 
-app.get("/projects", (c) => {
-  return c.json([]);
-});
-
-app.get("/projects/:projectId", (c) => {
-  const { projectId } = c.req.param();
-
-  return c.json({
-    projectId,
-  });
-});
-
-app.post("/projects/", async (c) => {
-  const body = await c.req.json();
-
-  console.log(body);
-
-  return c.json({
-    success: true,
-  });
-});
-
-//
-
-app.get("/projects/:projectId/analyses", (c) => {
-  const { projectId } = c.req.param();
-
-  return c.json([]);
-});
-
-app.get("/projects/:projectId/analyses/:analysisId", (c) => {
-  const { analysisId } = c.req.param();
-
-  return c.json({
-    analysisId,
-  });
-});
-
-app.post("/projects/:projectId/analyses", async (c) => {
-  const { projectId } = c.req.param();
-  const body = await c.req.json();
-
-  console.log(body);
-
-  return c.json({
-    success: true,
-  });
-});
+app.route("/projects", projectRoute);
+app.route("/", analysisRoute);
 
 // Configure OpenAPI with JWT authentication
 app.get("/openapi.json", (c) => {

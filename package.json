@@ -2,7 +2,8 @@
   "name": "test-dev-fullstack-2025-la-metis",
   "scripts": {
     "dev": "dotenvx run -- tsx watch src/index.ts",
-    "test": "dotenvx run -- vitest run",
+    "dev:e2e": "dotenvx run --env-file .env.test -- tsx watch src/index.ts",
+    "test": "dotenvx run -e .env.test -- vitest run --reporter verbose",
     "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "migration:show": "npm run typeorm -- migration:show --dataSource ./src/data-source.ts",
     "migration:generate": "npm run typeorm -- migration:generate --dataSource ./src/data-source.ts",
@@ -23,6 +24,8 @@
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.41.0",
     "@types/node": "^20.11.17",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^6.3.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.7.1",
     "vitest": "^3.1.2"

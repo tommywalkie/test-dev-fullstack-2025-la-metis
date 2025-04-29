@@ -3,8 +3,9 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    globals: true,
     environment: "node",
+    globals: true,
+    testTimeout: 10000, // Increase timeout for E2E tests
   },
   resolve: {
     alias: {

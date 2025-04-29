@@ -25,6 +25,8 @@ export class Analysis {
   @UpdateDateColumn({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   updatedAt: Date;
 
-  @ManyToOne(() => Project, (project) => project.analyses)
+  @ManyToOne(() => Project, (project) => project.analyses, {
+    onDelete: "CASCADE",
+  })
   project: Project;
 }
