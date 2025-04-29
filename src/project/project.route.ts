@@ -16,7 +16,6 @@ projectRoute.openapi(
     method: "get",
     path: "/",
     tags: ["Project"],
-    security: [{ bearerAuth: [] }],
     responses: {
       200: {
         content: {
@@ -37,7 +36,6 @@ projectRoute.openapi(
     method: "get",
     path: "/{projectId}",
     tags: ["Project"],
-    security: [{ bearerAuth: [] }],
     request: {
       params: z.object({
         projectId: z.string(),
@@ -66,7 +64,6 @@ projectRoute.openapi(
     method: "post",
     path: "/",
     tags: ["Project"],
-    security: [{ bearerAuth: [] }],
     request: {
       body: {
         content: {
@@ -99,7 +96,6 @@ projectRoute.openapi(
     method: "put",
     path: "/{projectId}",
     tags: ["Project"],
-    security: [{ bearerAuth: [] }],
     request: {
       params: z.object({
         projectId: z.string(),
@@ -141,7 +137,6 @@ projectRoute.openapi(
     method: "delete",
     path: "/{projectId}",
     tags: ["Project"],
-    security: [{ bearerAuth: [] }],
     request: {
       params: z.object({
         projectId: z.string(),

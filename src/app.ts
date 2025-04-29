@@ -4,8 +4,7 @@ import { initializeDatabase } from "./data-source";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { projectRoute } from "./project/project.route";
 import { analysisRoute } from "./analysis/analysis.route";
-
-console.log("process.env.PORT", process.env.PORT);
+import { userRoute } from "./user/user.route";
 
 initializeDatabase();
 
@@ -17,6 +16,7 @@ app.get("/", (c) => {
 
 app.route("/projects", projectRoute);
 app.route("/", analysisRoute);
+app.route("/users", userRoute);
 
 // Configure OpenAPI with JWT authentication
 app.get("/openapi.json", (c) => {
@@ -28,17 +28,24 @@ app.get("/openapi.json", (c) => {
     },
   });
 
+  // Tell Swagger that we use the X-User-ID header for authentication
   spec.components = {
     securitySchemes: {
-      bearerAuth: {
-        type: "http",
-        scheme: "bearer",
-        bearerFormat: "JWT",
+      userIdAuth: {
+        type: "apiKey",
+        in: "header",
+        name: "X-User-ID",
+        description: "User identifier for simulated authentication",
       },
     },
   };
 
-  spec.security = [{ bearerAuth: [] }];
+  // Make Swagger actually send the X-User-ID header on requests
+  spec.security = [
+    {
+      userIdAuth: [],
+    },
+  ];
 
   return c.json(spec);
 });
@@ -48,6 +55,5 @@ app.get(
   "/docs",
   swaggerUI({
     url: "/openapi.json",
-    persistAuthorization: true,
   })
 );
