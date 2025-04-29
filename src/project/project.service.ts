@@ -9,30 +9,87 @@ export class ProjectService {
   private projectUserRepository = AppDataSource.getRepository(ProjectUser);
   private userRepository = AppDataSource.getRepository(User);
 
-  async findAll(): Promise<Project[]> {
-    return this.projectRepository.find({
-      relations: ["createdBy", "projectUsers", "projectUsers.user"],
+  async findAll(userId: number): Promise<Project[]> {
+    // First, check if the user is an admin or manager
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
     });
+
+    // If user is an admin, return all projects
+    if (user && user.role === "admin") {
+      return this.projectRepository.find({
+        relations: ["createdBy", "projectUsers", "projectUsers.user"],
+      });
+    }
+
+    // For non-admin users, filter to only show projects they have access to
+    return this.projectRepository
+      .createQueryBuilder("project")
+      .leftJoinAndSelect("project.createdBy", "createdBy")
+      .leftJoinAndSelect("project.projectUsers", "projectUsers")
+      .leftJoinAndSelect("projectUsers.user", "user")
+      .where(
+        "project.createdById = :userId OR EXISTS (SELECT 1 FROM project_user pu WHERE pu.projectId = project.id AND pu.userId = :userId)",
+        { userId }
+      )
+      .getMany();
   }
 
-  async findById(id: number): Promise<Project | null> {
-    return this.projectRepository.findOne({
+  async findById(
+    id: number,
+    userId: number | null = null
+  ): Promise<Project | null> {
+    // If no userId is provided, just fetch the project without access check
+    if (userId === null) {
+      return this.projectRepository.findOne({
+        where: { id },
+        relations: ["createdBy", "projectUsers", "projectUsers.user"],
+      });
+    }
+
+    // Check if user is admin (admins can access all projects)
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (user && user.role === "admin") {
+      return this.projectRepository.findOne({
+        where: { id },
+        relations: ["createdBy", "projectUsers", "projectUsers.user"],
+      });
+    }
+
+    // For non-admin users, find the project first
+    const project = await this.projectRepository.findOne({
       where: { id },
       relations: ["createdBy", "projectUsers", "projectUsers.user"],
     });
+
+    // If project doesn't exist, return null
+    if (!project) {
+      return null;
+    }
+
+    // Check if user has access to this project (either as creator or assigned user)
+    const hasAccess =
+      project.createdById === userId ||
+      project.projectUsers.some((pu) => pu.userId === userId);
+
+    return hasAccess ? project : null;
   }
 
   async create(data: Partial<Project>, userIds?: number[]): Promise<Project> {
-    // Créer le projet
+    // Create the project
     const project = this.projectRepository.create(data);
     await this.projectRepository.save(project);
 
-    // Associer les utilisateurs si fournis
+    // Associate users if provided
     if (userIds && userIds.length > 0) {
       await this.updateProjectUsers(project.id, userIds);
     }
 
-    return this.findById(project.id) as Promise<Project>;
+    // Use null to bypass access check for internal calls
+    return this.findById(project.id, null) as Promise<Project>;
   }
 
   async update(
@@ -40,29 +97,29 @@ export class ProjectService {
     data: Partial<Project>,
     userIds?: number[]
   ): Promise<Project | null> {
-    // Vérifier que le projet existe
-    const project = await this.findById(id);
+    // Check if project exists
+    const project = await this.findById(id, null);
     if (!project) {
       return null;
     }
 
-    // Mettre à jour les propriétés du projet
+    // Update project properties
     if (data.name) {
       project.name = data.name;
     }
 
     await this.projectRepository.save(project);
 
-    // Mettre à jour les utilisateurs associés si fournis
+    // Update associated users if provided
     if (userIds !== undefined) {
       await this.updateProjectUsers(id, userIds);
     }
 
-    return this.findById(id);
+    return this.findById(id, null);
   }
 
   async delete(id: number): Promise<boolean> {
-    const project = await this.findById(id);
+    const project = await this.findById(id, null);
     if (!project) {
       return false;
     }

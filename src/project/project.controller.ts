@@ -9,13 +9,21 @@ export class ProjectController {
   }
 
   findAll = async (c: Context) => {
-    const projects = await this.projectService.findAll();
+    // Get the authenticated user from the context
+    const user = c.get("user");
+
+    // Pass the user ID to the service to filter projects
+    const projects = await this.projectService.findAll(user.id);
     return c.json(projects, 200);
   };
 
   findById = async (c: Context) => {
     const id = Number(c.req.param("projectId"));
-    const project = await this.projectService.findById(id);
+    // Get the authenticated user from the context
+    const user = c.get("user");
+
+    // Pass the user ID to check project access
+    const project = await this.projectService.findById(id, user.id);
 
     if (!project) {
       return c.json({ message: "Project not found" }, 404);
